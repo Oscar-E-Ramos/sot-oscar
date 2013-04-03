@@ -16,10 +16,19 @@
  */
 
 /*! \file foot-collision-grid.h
-  \brief It is an specialization for the robot foot that simulates a grid on the 
-  sole to discretize the collision points detected. Discretization is an alternative
-  to eliminate numerical noise and instabilities, and it is the way a real array of
-  sensors would be used on the sole.
+  \brief This entity is an specialization for the robot foot that simulates a grid on its 
+  sole. Each input contact point belongs to a cell in the grid. If the cell has at least one 
+  input contact point, it is set to 'active' (it should be noted that even if there are many points
+  within a cell, the latter can only have one state of 'active', which eliminates close points within
+  the size of the cell. 
+
+  Alternatively, this can be viewed as a discretization of the foot sole in a grid composed of cells, 
+  each of which can be active or not depending of whether there are contact points in it or not. Using
+  the indices of the active cells, a convex hull in 2D (the sole's plane) is found and the center of
+  the cells is retourned as contact points (convex hull).
+
+  The main purpose of this entity is to eliminate numerical noise and instabilities. Moreover, this is
+  the way in which a real array of sensors would be used on the sole.
 */
 
 
@@ -71,9 +80,9 @@ namespace dynamicgraph {
 	  FootCollisionGrid( const std::string & name );
 
 	  /* --- ENTITY INHERITANCE --- */
-	  
 	  static const std::string CLASS_NAME;
 	  virtual void display( std::ostream& os ) const;
+	  /** Entity Inheritance: return the class name */
 	  virtual const std::string& getClassName( void ) const {return CLASS_NAME;}
 	  virtual void commandLine( const std::string& cmdLine,
 				    std::istringstream& cmdArgs,
@@ -90,25 +99,23 @@ namespace dynamicgraph {
 	  /*! \brief Signal [output]: Outputs the size of each step of the grid */
 	  DECLARE_SIGNAL_OUT(gridStepSize, double);
 
-	  /*! \brief Signal [output]: Coordinates of the foot corner, with respect to its ankle */
+	  /*! \brief Signal [output]: Coordinates of the foot corner, with respect to its ankle frame */
 	  DECLARE_SIGNAL_OUT(footCornersWrtAnkle, ml::Matrix);
 
 	  /*! \brief Signal [input]: Coordinales of the foot corner, with respect to the world frame */
 	  DECLARE_SIGNAL_OUT(footCornersWrtWorld, ml::Matrix);
 
-	  /*! \brief Signal [output]: discretized contact points according to the grid (all the points) */
-	  DECLARE_SIGNAL_OUT(discContactPointsFull, ml::Matrix); 
+	  /*! \brief Signal [output]: 'discretized' contact points according to the grid (all the points) */
+	  DECLARE_SIGNAL_OUT(contactPointsFull, ml::Matrix); 
 
-	  /** Signal [output]: discretized contact points according to the grid (reduced set containing
-	      only the convex hull */
-	  DECLARE_SIGNAL_OUT(discContactPoints, ml::Matrix); 
+	  /** Signal [output]: 'discretized' contact points according to the grid (reduced set containing
+	      only the convex hull) */
+	  DECLARE_SIGNAL_OUT(contactPoints, ml::Matrix); 
 
 
 	  /* --- COMMANDS --- */
 	  void setGridStepSize( const double & stepSize );
 	  void setFootCorners( const ml::Matrix & footCorners );
-
-	  void cmd_printInformation( void );
 
 	private:
 
@@ -120,7 +127,6 @@ namespace dynamicgraph {
 	  /* --- Variables --- */
 	  double gridStepSize;
 	  Eigen::MatrixXd cornersWrtAnkle;        // Corners of the foot with respect to the ankle
-	  Eigen::MatrixXd cornersWrtWorld;        // Corners of the foot with respect to the world
 	  Eigen::Vector4d originWrtAnkle;         // Virtual back right point of the foot (wrt ankle)
 	  Eigen::Vector4d centerWrtAnkle;         // Center of the foot with respect to ankle 
 
@@ -128,7 +134,7 @@ namespace dynamicgraph {
 	  std::vector<Eigen::Vector4d> gridContactPoints; // Contact Points in the grid
 
 	  Points cgalPoints, cgalResult; 
-
+	  
 	  /* --- Helper Functions --- */
 	  void calculateTwoMins(const Eigen::MatrixXd & points, int dimension, 
 				unsigned int & imin1, unsigned int & imin2);

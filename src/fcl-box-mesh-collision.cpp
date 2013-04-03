@@ -69,8 +69,6 @@ namespace dynamicgraph
 	,CONSTRUCT_SIGNAL_OUT(transfMesh, ml::Matrix, sotNOSIGNAL)	  
 	,CONSTRUCT_SIGNAL_OUT(contactPoints, ml::Matrix, sotNOSIGNAL)
 	,CONSTRUCT_SIGNAL_OUT(maxNumContacts, int, sotNOSIGNAL)
-	// ,CONSTRUCT_SIGNAL_OUT(contactPoints, ml::Matrix,
-	// 		      inContactSOUT)
       {
 	signalRegistration(minDistanceSOUT << transfBoxSOUT << transfMeshSOUT
 			   << contactPointsSOUT << maxNumContactsSOUT );
@@ -79,9 +77,6 @@ namespace dynamicgraph
 	transfMeshSOUT.setNeedUpdateFromAllChildren( true );
 	contactPointsSOUT.setNeedUpdateFromAllChildren( true );
 	maxNumContactsSOUT.setNeedUpdateFromAllChildren( true );
-
-	// inContactSOUT.setNeedUpdateFromAllChildren( true );
-	// contactPointsSOUT.setNeedUpdateFromAllChildren( true );
 	initCommands();
       }
 
@@ -130,10 +125,6 @@ namespace dynamicgraph
 				    dyninv::docCommandVoid1("Set the position and orientation of the mesh",
 							    "Homogeneous transformation matrix (4x4)")));
 
-
-	// addCommand("printInformation",
-	// 	   makeCommandVoid0(*this, &FclBoxMeshCollision::cmd_printInformation,
-	// 			    dyninv::docCommandVoid0("Print information about the contacts.")));
 
       }
       
@@ -269,16 +260,18 @@ namespace dynamicgraph
       ml::Matrix& FclBoxMeshCollision::
       contactPointsSOUT_function( ml::Matrix& mlpoints, int t )
       {
-	static const bool enable_contact   = true;
+	static const bool enable_contact = true;
 	fcl::CollisionRequest request(num_max_contacts, enable_contact);
 	fcl::CollisionResult  result;
 	result.clear();
 	cgalPoints.clear();
 
-	/* Detect the collision and get the information */
+	/* Detect the collision with fcl and get the information */
 	collide(&box, transformBox, &mesh, transformMesh, request, result);
 	
+	/* If there were points in contact */
 	if(result.numContacts() > 0) {
+	  
 	  std::vector<fcl::Contact> contacts;
 	  result.getContacts(contacts);
 	  
@@ -287,23 +280,21 @@ namespace dynamicgraph
 	  double duplicateTolerance = 1e-6;
 	  eliminateDuplicates(contacts, contactPoints, duplicateTolerance); 
 
-	  /* Apply the convex hull for the set of contact points */
-	  
-	  // Store results and save the points in a format suitable for cgal*/
+	  /* Store results and save the points in a format suitable for cgal*/
 	  for (unsigned int i=0; i<contactPoints.size(); ++i){
 	    Point_3 p(contactPoints[i].x, contactPoints[i].y, contactPoints[i].z);
 	    cgalPoints.push_back(p);
 	  }    
 	  
-	  /* Compute the convex hull of the points */
+	  /* Compute the 3D convex hull of the points using CGAL*/
 	  CGAL::Convex_hull_traits_3<K> traits;
 	  CGAL::convex_hull_3(cgalPoints.begin(), cgalPoints.end(), ch_object, traits);
 
 	  /* To store the contact points, if necessary */
 	  std::vector<Eigen::Vector3d> pointsCh;
 
+	  /* If the object is a point: copy it to the mal directly and end the program */
 	  if (assign(point, ch_object)) {
-	    /* The object is a point: copy it to the mal directly and end the program */
 	    DEBUG_MSG("It is a point" << std::endl);
 	    mlpoints.resize(1, 3);
 	    mlpoints(0,0) = point[0];
@@ -311,9 +302,9 @@ namespace dynamicgraph
 	    mlpoints(0,2) = point[2];
 	    return mlpoints;
 	  }
-	  
+
+	  /* If the object is a segment: copy it to the mal and end the program */
 	  else if (assign(segment, ch_object)) {
-	    /* The object is a segment: copy it to the mal and end the program */
 	    DEBUG_MSG("It is a segment" << std::endl);
 	    mlpoints.resize(2, 3);
 	    for(unsigned int ii=0; ii<2; ii++) {
@@ -324,14 +315,9 @@ namespace dynamicgraph
 	    return mlpoints;
 	  }
 
+	  /* If the object is a triangle: copy it to the mal and end the program */
 	  else if (assign(triangle, ch_object)) {
-	    /* The object is a triangle: copy it to eigen format for further processing */
 	    DEBUG_MSG("It is a triangle" << std::endl);
-	    //Eigen::Vector3d pointTmp;
-	    // for(unsigned int ii=0; ii<3; ii++) {
-	    //   pointTmp << triangle[ii][0], triangle[ii][1], triangle[ii][2];
-	    //   pointsCh.push_back(pointTmp);
-	    // }
 	    mlpoints.resize(3, 3);
 	    for(unsigned int ii=0; ii<3; ii++) {
 	      mlpoints(ii,0) = triangle[ii][0];
@@ -340,16 +326,10 @@ namespace dynamicgraph
 	    }
 	    return mlpoints;
 	  }
-	  
+
+	  /* If the object is a polyhedron: copy it to the mal and end the program */
 	  else if (assign(poly, ch_object)) {
-	    /* The object is a polyhedron: copy it to eigen format for further processing */
 	    DEBUG_MSG("It is a polyhedron" << std::endl);
-	    // Eigen::Vector3d pointTmp;
-	    // for(Polyhedron_3::Vertex_iterator viter = poly.vertices_begin();
-	    // 	viter!=poly.vertices_end(); viter++) {
-	    //   pointTmp << viter->point()[0], viter->point()[1], viter->point()[2];
-	    //   pointsCh.push_back(pointTmp);
-	    // }
 	    mlpoints.resize(poly.size_of_vertices(), 3);
 	    unsigned int ii=0;
 	    for(Polyhedron_3::Vertex_iterator viter = poly.vertices_begin();
@@ -361,30 +341,15 @@ namespace dynamicgraph
 	    }
 	    return mlpoints;
 	  }
-	  
+
+	  /* No convex hull found with cgal: this is an error */ 
 	  else{
-	    /* No convex hull found with cgal: this is an error */
 	    std::cerr << "No convex hull detected by cgal" << std::endl;
 	  }
 
-	  // OUTPUT_PTS("pointsCGAL=[");
-	  // for(unsigned int i=0; i<pointsCh.size(); i++)
-	  //   OUTPUT_PTS(pointsCh[i].transpose() << "; ");
-	  // OUTPUT_PTS("];" << std::endl);
-	  
-	  // /* Call myconvexHull to detect the strong convex hull */
-	  // myConvexHull( pointsCh, distTolerance );
-	  
-	  // /* Copy the results in the mal format */
-	  // mlpoints.resize(pointsCh.size(), 3);
-	  // for (unsigned int i=0; i<pointsCh.size(); ++i) {
-	  //   mlpoints(i,0) = pointsCh[i](0);
-	  //   mlpoints(i,1) = pointsCh[i](1);
-	  //   mlpoints(i,2) = pointsCh[i](2);
-	  // }
-	  
 	}
 	
+	/* If there were no points in contact */
 	else {
 	  mlpoints.resize(0,0);
 	}
@@ -474,84 +439,77 @@ namespace dynamicgraph
 	  std::cerr << "Error: cannot find the file " << filename << "!" << std::endl;
 	  exit(EXIT_FAILURE);
 	}
-
+	
 	bool has_normal = false;
 	bool has_texture = false;
 	char line_buffer[2000];
-	while(fgets(line_buffer, 2000, file))
-	  {
-	    char* first_token = strtok(line_buffer, "\r\n\t ");
-	    if(!first_token || first_token[0] == '#' || first_token[0] == 0)
-	      continue;
 
-	    switch(first_token[0])
+	while(fgets(line_buffer, 2000, file)) {
+	  
+	  char* first_token = strtok(line_buffer, "\r\n\t ");
+	  if(!first_token || first_token[0] == '#' || first_token[0] == 0)
+	    continue;
+	  
+	  switch(first_token[0])
+	    {
+	    case 'v':
 	      {
-	      case 'v':
-		{
-		  if(first_token[1] == 'n')
-		    {
-		      strtok(NULL, "\t ");
-		      strtok(NULL, "\t ");
-		      strtok(NULL, "\t ");
-		      has_normal = true;
-		    }
-		  else if(first_token[1] == 't')
-		    {
-		      strtok(NULL, "\t ");
-		      strtok(NULL, "\t ");
-		      has_texture = true;
-		    }
-		  else
-		    {
-		      fcl::FCL_REAL x = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
-		      fcl::FCL_REAL y = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
-		      fcl::FCL_REAL z = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
-		      fcl::Vec3f p(x, y, z);
-		      points.push_back(p);
-		    }
+		if(first_token[1] == 'n') {
+		  strtok(NULL, "\t ");
+		  strtok(NULL, "\t ");
+		  strtok(NULL, "\t ");
+		  has_normal = true;
 		}
-		break;
-	      case 'f':
-		{
-		  fcl::Triangle tri;
-		  char* data[30];
-		  int n = 0;
-		  while((data[n] = strtok(NULL, "\t \r\n")) != NULL)
-		    {
-		      if(strlen(data[n]))
-			n++;
-		    }
-
-		  for(int t = 0; t < (n - 2); ++t)
-		    {
-		      if((!has_texture) && (!has_normal))
-			{
-			  tri[0] = atoi(data[0]) - 1;
-			  tri[1] = atoi(data[1]) - 1;
-			  tri[2] = atoi(data[2]) - 1;
-			}
-		      else
-			{
-			  const char *v1;
-			  for(int i = 0; i < 3; i++)
-			    {
-			      // vertex ID
-			      if(i == 0)
-				v1 = data[0];
-			      else
-				v1 = data[t + i];
-
-			      tri[i] = atoi(v1) - 1;
-			    }
-			}
-		      triangles.push_back(tri);
-		    }
+		else if(first_token[1] == 't') {
+		  strtok(NULL, "\t ");
+		  strtok(NULL, "\t ");
+		  has_texture = true;
+		}
+		else {
+		  fcl::FCL_REAL x = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+		  fcl::FCL_REAL y = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+		  fcl::FCL_REAL z = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+		  fcl::Vec3f p(x, y, z);
+		  points.push_back(p);
 		}
 	      }
-	  }
+	      break;
+	    case 'f':
+	      {
+		fcl::Triangle tri;
+		char* data[30];
+		int n = 0;
+		while((data[n] = strtok(NULL, "\t \r\n")) != NULL) {
+		  if(strlen(data[n]))
+		    n++;
+		}
+
+		for(int t = 0; t < (n - 2); ++t) {
+		  if((!has_texture) && (!has_normal)) {
+		    tri[0] = atoi(data[0]) - 1;
+		    tri[1] = atoi(data[1]) - 1;
+		    tri[2] = atoi(data[2]) - 1;
+		  }
+		  else {
+		    const char *v1;
+		    for(int i = 0; i < 3; i++) {
+		      // vertex ID
+		      if(i == 0)
+			v1 = data[0];
+		      else
+			v1 = data[t + i];
+		      
+		      tri[i] = atoi(v1) - 1;
+		    }
+		  }
+		  triangles.push_back(tri);
+		}
+	      }
+	    }
+	}
       }
-
-
+      
+      
       /** Set the transformation matrix M=[R|T] of size 3x4 from R and T */
       void FclBoxMeshCollision::
       setMfromRT(ml::Matrix & mlM, const fcl::Matrix3f &R, const fcl::Vec3f &T)
@@ -1068,10 +1026,6 @@ namespace dynamicgraph
 	}
 	points = pointsOUT;
       }  
-
-
-
-
 
     } // namespace oscar
   } // namespace sot

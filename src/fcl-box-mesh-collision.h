@@ -106,14 +106,10 @@ namespace dynamicgraph {
 	  /** Signal: points in contact (nx3 matrix) */
 	  DECLARE_SIGNAL_OUT(contactPoints, ml::Matrix);
 
-	  
-	  /* DECLARE_SIGNAL_OUT(inContact, int); */
-
 
 	  /* --- COMMANDS --- */
 	  void setMinDistance( const double & minimumDistance );
 	  void setMaxNumContacts( const int & maxNumContacts );
-
 	  void setBoxDimensions( const ml::Vector & dim ); 
 	  void setBoxPose( const ml::Vector & pose );
 	  void setBoxTransformation( const ml::Matrix & M );
@@ -121,19 +117,14 @@ namespace dynamicgraph {
 	  void setMeshPose( const ml::Vector & pose );
 	  void setMeshTransformation( const ml::Matrix & M );
 
-	  void cmd_printInformation( void );
-
 	private:
 
 	  /* Typedefs for cgal */
 	  typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
-	  typedef CGAL::Polyhedron_3<K>                     Polyhedron_3;
-	  typedef K::Segment_3                              Segment_3;
-	  typedef K::Triangle_3                             Triangle_3;
-	  typedef K::Point_3                                Point_3;
-	  //typedef K::Vector_3                               Vector_3;
-	  //typedef CGAL::Creator_uniform_3<double, Point_3>  PointCreator;
-
+	  typedef CGAL::Polyhedron_3<K>  Polyhedron_3;
+	  typedef K::Segment_3           Segment_3;
+	  typedef K::Triangle_3          Triangle_3;
+	  typedef K::Point_3             Point_3;
 
 	  /* --- Variables --- */
 	  double distTolerance;
@@ -151,9 +142,9 @@ namespace dynamicgraph {
 	  // For the convex hull (cgal)
 	  CGAL::Object ch_object;
 	  Polyhedron_3 poly; 
-	  Point_3 point;
-	  Segment_3 segment;
-	  Triangle_3 triangle;
+	  Point_3      point;
+	  Segment_3    segment;
+	  Triangle_3   triangle;
 	  std::vector<Point_3> cgalPoints;
 
 	  /* --- Structure for the points --- */
@@ -175,15 +166,6 @@ namespace dynamicgraph {
 			    double minPointsDistance );
 	  void eliminateClosePoints(std::vector<Eigen::Vector3d> &points, 
 				    double dist_tolerance) ;
-
-
-	  /* --- Helper Printing functions --- */
-	  //void printRotTrans(double R[9], double T[3]);
-	  
-
-	  /* void printRotTrans(Eigen::Matrix3d R, Eigen::Vector3d T ); */
-	  /* void printLengths(const ml::Vector & length); */
-	  /* void setMfromRT(ml::Matrix & mlM, Eigen::Matrix3d R, Eigen::Vector3d T); */
 
 
 	}; // class FclBoxMeshCollision

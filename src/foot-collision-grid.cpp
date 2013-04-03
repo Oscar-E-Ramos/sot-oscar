@@ -65,9 +65,8 @@ namespace dynamicgraph
       FootCollisionGrid::
       FootCollisionGrid( const std::string & name )
 	: Entity(name)
-	,gridStepSize(0.1)
+	,gridStepSize(0.01)
 	,cornersWrtAnkle()
-	,cornersWrtWorld()
 	,originWrtAnkle()
 	,centerWrtAnkle()
 	,CONSTRUCT_SIGNAL_IN(contactPointsIN, ml::Matrix)
@@ -76,16 +75,15 @@ namespace dynamicgraph
 	,CONSTRUCT_SIGNAL_OUT(footCornersWrtAnkle, ml::Matrix, sotNOSIGNAL)
 	,CONSTRUCT_SIGNAL_OUT(footCornersWrtWorld, ml::Matrix, 
 			      footTransfSIN )
-	,CONSTRUCT_SIGNAL_OUT(discContactPointsFull, ml::Matrix, 
+	,CONSTRUCT_SIGNAL_OUT(contactPointsFull, ml::Matrix, 
 			      footTransfSIN << contactPointsINSIN )
-	,CONSTRUCT_SIGNAL_OUT(discContactPoints, ml::Matrix, 
+	,CONSTRUCT_SIGNAL_OUT(contactPoints, ml::Matrix, 
 			      footTransfSIN << contactPointsINSIN )	  
       {
 	signalRegistration(contactPointsINSIN << footTransfSIN << gridStepSizeSOUT 
-			   << discContactPointsFullSOUT << discContactPointsSOUT
+			   << contactPointsFullSOUT << contactPointsSOUT
 			   << footCornersWrtAnkleSOUT << footCornersWrtWorldSOUT );
 	footCornersWrtAnkleSOUT.setNeedUpdateFromAllChildren( true );
-	//footCornersWrtWorldSOUT.setNeedUpdateFromAllChildren( true );
 	gridStepSizeSOUT.setNeedUpdateFromAllChildren( true );
 	initCommands();
       }
@@ -120,11 +118,11 @@ namespace dynamicgraph
 	gridStepSize = stepSize;
       }
 
-      /** Sets the coordinates of the foot corners with respect to the ankle operational point. Assuming
-	  an initial position with equal z (horizontal plane) for all the points. The points are ordered
-	  starting from the one with minimum x, y components and going counter-clockwise. Also, the center
-	  of the foot is calculated and the gridInitializer is called.
-	  \param [in] footCorners Coordinates of the 4 foot corners (3x4)
+      /** Sets the coordinates of the foot corners with respect to the ankle frame. 
+	  It assumes an initial position with equal z (horizontal plane) for all the points. The points 
+	  are ordered starting from the one with minimum x, y components and going counter-clockwise. 
+	  Also, the center of the foot is calculated and the 'grid initializer' function is called.
+	  \param [in] footCorners Coordinates of the 4 foot corners (3x4), where each column is a point
       */
       void FootCollisionGrid::
       setFootCorners( const ml::Matrix & footCorners )
@@ -215,24 +213,24 @@ namespace dynamicgraph
       footCornersWrtWorldSOUT_function( ml::Matrix& mlcorners, int t )
       {
 	EIGEN_CONST_MATRIX_FROM_SIGNAL(TransfAnkleWrtWorld, footTransfSIN(t));
-	// EIGEN_MATRIX_FROM_MATRIX(cornersWrtWorld, mlcorners, 3, 4);
 	
 	assert((cornersWrtAnkle.rows()==3) && (cornersWrtAnkle.cols()==4));
 	mlcorners.resize(cornersWrtAnkle.rows(), cornersWrtAnkle.cols());
-	Eigen::Vector4d cornerAnkle(1,1,1,1);
+
+	Eigen::Vector4d cornerWrtWorld(1,1,1,1);
 	for(int i=0; i<cornersWrtAnkle.cols(); i++){
-	  cornerAnkle.head(3) = cornersWrtAnkle.col(i);        // In homogeneous coordinates
-	  cornerAnkle = TransfAnkleWrtWorld * cornerAnkle;     // In homogeneous coordinates
-	  mlcorners(0,i) = cornerAnkle(0);
-	  mlcorners(1,i) = cornerAnkle(1);
-	  mlcorners(2,i) = cornerAnkle(2);
+	  cornerWrtWorld.head(3) = cornersWrtAnkle.col(i);        // In homogeneous coordinates
+	  cornerWrtWorld = TransfAnkleWrtWorld * cornerWrtWorld;  // In homogeneous coordinates
+	  mlcorners(0,i) = cornerWrtWorld(0);
+	  mlcorners(1,i) = cornerWrtWorld(1);
+	  mlcorners(2,i) = cornerWrtWorld(2);
 	}
       	return mlcorners;
       }
 
 
       ml::Matrix& FootCollisionGrid::
-      discContactPointsFullSOUT_function( ml::Matrix& mlpoints, int t )
+      contactPointsFullSOUT_function( ml::Matrix& mlpoints, int t )
       {
 	EIGEN_CONST_MATRIX_FROM_SIGNAL(pointsIN, contactPointsINSIN(t));
 	EIGEN_CONST_MATRIX_FROM_SIGNAL(TransfAnkleWrtWorld, footTransfSIN(t));
@@ -292,7 +290,7 @@ namespace dynamicgraph
       }
 
       ml::Matrix& FootCollisionGrid::
-      discContactPointsSOUT_function( ml::Matrix& mlpoints, int t )
+      contactPointsSOUT_function( ml::Matrix& mlpoints, int t )
       {
 
 	EIGEN_CONST_MATRIX_FROM_SIGNAL(pointsIN, contactPointsINSIN(t));
@@ -312,18 +310,19 @@ namespace dynamicgraph
 	/* Vectors to be used for the increments in x and y */
 	Eigen::Vector4d vx(1.0, 0.0, 0.0, 0.0);
 	Eigen::Vector4d vy(0.0, 1.0, 0.0, 0.0);
-	vx = TransfAnkleWrtWorld * vx;
-	vy = TransfAnkleWrtWorld * vy;
-	vx.normalize(); vy.normalize();
+	vx = TransfAnkleWrtWorld * vx;  vx.normalize();
+	vy = TransfAnkleWrtWorld * vy;  vy.normalize();
 	DEBUG_MSG("vx=[" << vx.transpose() << "]; vy=[" << vy.transpose() << "];" << std::endl);
 	
 	/* Fill with '1' the grid elements where collision was detected */
 	for(int i=0; i<pointsIN.rows(); i++) {
+	  
 	  contactPoint.head(3) = pointsIN.row(i);   // In homogeneous coordinates
 	  indexGrid.first  = int(floor( vx.dot(contactPoint-originWrtWorld) / gridStepSize ));
 	  indexGrid.second = int(floor( vy.dot(contactPoint-originWrtWorld) / gridStepSize ));
 	  DEBUG_MSG("Point" << i << " - Grid indices (x0, y0) = (" << indexGrid.first << ", "
 		    << indexGrid.second << ")" << std::endl); 
+	  
 	  /* If the grid element has detected collision for the first time */
 	  if(grid[indexGrid]==0){
 	    DEBUG_MSG("UPDATED GRID WITH: " << indexGrid.first << "  " << indexGrid.second << std::endl);
@@ -370,12 +369,14 @@ namespace dynamicgraph
       /* --- ENTITY ----------------------------------------------------------- */
       /* ---------------------------------------------------------------------- */
 
+      /** Entity inheritance: gets the name */
       void FootCollisionGrid::
       display( std::ostream& os ) const
       {
       	os << "FootCollisionGrid "<< getName() << "." << std::endl;
       }
 
+      /** Entity inheritance */
       void FootCollisionGrid::
       commandLine( const std::string& cmdLine,
       		   std::istringstream& cmdArgs,
@@ -398,7 +399,7 @@ namespace dynamicgraph
       /* --------------------------------------------------------------------- */
 
 
-      /** Find the two minimum values and return their indexes 
+      /** Find the two minimum values according to some dimension, and return their indexes 
 	  \param [in] points matrix containing the points (3x4)
 	  \param [in] dimension can be 0,1,2 (for x,y or z)
 	  \param [out] imin1 minimum index 1
