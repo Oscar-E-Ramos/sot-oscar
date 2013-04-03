@@ -1,0 +1,131 @@
+%\documentclass[11pt,twoside,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\usepackage{graphicx}
+\usepackage{subfig}
+
+\usepackage{color}
+\usepackage{listings}
+\usepackage{framed}
+\lstset{
+  language=C++,
+  basicstyle=\footnotesize,
+  %frame=single,
+  %keywordstyle=\color{blue}, 
+  keywordstyle=\color[rgb]{0.627,0.126,0.941},
+  %commentstyle=\color[rgb]{0.133,0.545,0.133},
+  commentstyle=\color[rgb]{1.,0.2,0.2},
+  stringstyle=\color[rgb]{0.75,0.5,0.25},
+  identifierstyle=\ttfamily,
+  showstringspaces=false,
+  tabsize=2,
+  breaklines=true,
+  %prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+  %breakatwhitespace=false,
+  %aboveskip={1.5\baselineskip},
+  %extendedchars=true,
+}
+
+% TO CHANGE MARGINS -------------
+\setlength{\textwidth}{400pt}
+\addtolength{\hoffset}{-15pt}
+\setlength{\textheight}{670pt}
+\addtolength{\voffset}{-36pt}
+
+
+% FOR HEADER AND FOOTER  --------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+% Delete the default header and footer
+\fancyhead{}
+\fancyfoot{}
+% Customize the header and footer:
+% E:Even page, O:Odd, L:Left, C:Center, R:Right, H:Header, F:footer
+%\fancyhead[RO,RE]{\textit{Information about the Stack of Tasks}}
+%\fancyfoot[LO,LE]{\textit{Oscar E. Ramos Ponce}}
+\fancyfoot[R]{\thepage}
+% Decorative lines for header and footer
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+
+\title{\textbf{Implementation of Collision detection v1}}
+\author{Oscar E. Ramos Ponce
+}
+  %% LAAS-CNRS, University of Toulouse III \\
+  %% Toulouse, France}
+\date{}
+
+\begin{document}
+\maketitle
+
+%====================================================================
+\section{Background of the implementation}
+%====================================================================
+
+The collision detection for the robot walking is implemented in the entity called \textit{FclBoxMexhCollision}. It is based on the \textit{fcl} (Flexible Collision Detection) package to detect all the collision points between a box (the model of the robot feet) and a mesh (the model of the ground and the imperfections in it. Then, the convex hull is computed using the \textit{cgal} (Computational Geometry Algorithms Library) and refined using a self-implemented convex hull that considers tolerances.
+
+The basic steps are thus:
+\begin{itemize}
+  \item Define the box dimensions and its transformation, as well as the file containing the mesh information of the ground. These elements are used within fcl to detect the collision. The library detects all the points in collision, and it has been experimentally verified that even in a regular mesh (manually synthesized) the points are not detected in the same places for similar triangles of the mesh. This variability might depend on the particular implementation of the fcl library. Another problem of the library is that it can return the same point more than once, which is undesired. A function called \textit{eliminateDuplicates} was implemented to eliminate those points that are virtually the same. It has a tolerance to define the idea of duplicate, which is arbitrarily set to $10^{-6}$. It is recommendable not to change this value since the main objective of this function is to eliminate duplicates, not close points.
+  \item Rather than all the collision points, in this work, we are rather interested in the convex hull formed by those points. For this reason, the 3D convex hull implemented in cgal was used. This implementation is fast and can find the convex hull of a large number of points in a relatively short time. The outputs are either a single point, a segment (the two extreme points), a triangle (three points) or a polyhedron (more than three points). However, it does not return a minimal convex hull due to round-off errors and it considers no tolerance between very close points. 
+  \item To obtain the minimal convex hull, a function called \textit{myConvexHull} was implemented. This function basically considers the tolerances that might present in the real world (for instance, two points that arae sepparated by $0.5$mm can be considered as being the same point). More details about this function is given in the following section. 
+\end{itemize}
+
+%====================================================================
+\section{Convex Hull detection}
+%====================================================================
+
+The convex hull detection is implemented in the function \textit{myConvexHull} principally because existing libraries for convex hull detection consider only a mathematically exact convex hull (possibly taking into account minimal round-off errors) but do not consider tolerance between close points, which is important for our purposes. There are two parameters used as input to the function: the points, and the minimum points distance.
+The basic steps are:
+\begin{itemize}
+  \item The output of the cgal detection is used as input to the function. The function first verifies the number of points and the following cases might occur:
+    \begin{itemize}
+      \item There is one point: the point is returned without any further processing. 
+      \item There are $2$ points: the distance between them is calculated and both points are returned if they are far enough; otherwise, the mean is returned. Mathematically, let the points be $p_1=(x_1,y_1,z_1)$ and $p_2=(x_2,y_2,z_2)$, and let a condition $c$ be:
+        \begin{equation*}
+          c = \{|x_1-x_2|<d\} \wedge \{|y_1-y_2|<d\} \wedge \{|z_1-z_2|<d\} 
+        \end{equation*}
+        where $\wedge$ represents the logical \textit{and} operation. If $c$ is true, the points are close within a box of side $2d$ around one of the points: they are considered as the same point, and the mean is returned. If $c$ is false, the points are considered far enough and both are returned without any further processing. In the function $d$ is called \textit{minPointsDistance}. 
+      \item There are $3$ points: there is a further processing explained in the following steps.
+\item When there are more than $3$ points, the close points are eliminated 
+
+\end{itemize}
+
+\subsection{Polygon convex hull detection}
+
+\begin{itemize}
+  \item The maximum norm is found to project on the plane given by that norm.
+  \item The minimum in the $x$ and $y$ directions are found to be used to test the convex hull condition
+  \item 
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}

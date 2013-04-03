@@ -1,0 +1,10 @@
+*build
+*~
+*.pyc
+*/#*#
+.#*
+*/octave-core
+*dat
+*.pdf
+*.aux
+*.log

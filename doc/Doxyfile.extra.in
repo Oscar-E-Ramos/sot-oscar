@@ -1,0 +1,5 @@
+INPUT                  = @CMAKE_SOURCE_DIR@/src
+IMAGE_PATH             = @CMAKE_SOURCE_DIR@/doc/pictures
+
+FILE_PATTERNS          = *.cc *.cpp *.h *.hh *.hxx
+
