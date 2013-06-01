@@ -126,6 +126,8 @@ namespace dynamicgraph {
 
 	  /* --- Variables --- */
 	  double gridStepSize;
+	  int sizeIndexGridX;                     // Total size of grid in X (5,6,7,...) 
+	  int sizeIndexGridY;                     // Total size of grid in Y 
 	  Eigen::MatrixXd cornersWrtAnkle;        // Corners of the foot with respect to the ankle
 	  Eigen::Vector4d originWrtAnkle;         // Virtual back right point of the foot (wrt ankle)
 	  Eigen::Vector4d centerWrtAnkle;         // Center of the foot with respect to ankle 

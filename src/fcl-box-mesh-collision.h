@@ -91,6 +91,10 @@ namespace dynamicgraph {
 	  void initCommands( void );
 
 	  /* --- SIGNALS --- */
+
+	  /*! \brief Signal [input]: Homogeneous Transformation for the box */
+	  DECLARE_SIGNAL_IN(transfBoxIN, ml::Matrix);
+
 	  /*! \brief Signal that returns the tolerance for the minimum distance between close points */
 	  DECLARE_SIGNAL_OUT(minDistance, double);
 

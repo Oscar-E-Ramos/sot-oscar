@@ -322,6 +322,11 @@ namespace dynamicgraph
 	  indexGrid.second = int(floor( vy.dot(contactPoint-originWrtWorld) / gridStepSize ));
 	  DEBUG_MSG("Point" << i << " - Grid indices (x0, y0) = (" << indexGrid.first << ", "
 		    << indexGrid.second << ")" << std::endl); 
+
+	  /* Discard the point if it does not belong to the foot (for some 'BUG' in fcl) */
+	  if (indexGrid.first  < 0 || indexGrid.first  >= sizeIndexGridX ||
+	      indexGrid.second < 0 || indexGrid.second >= sizeIndexGridY)
+	    continue;
 	  
 	  /* If the grid element has detected collision for the first time */
 	  if(grid[indexGrid]==0){
@@ -455,13 +460,13 @@ namespace dynamicgraph
 	DEBUG_MSG("originWrtAnkle = [" << originWrtAnkle.transpose() << "];" << std::endl);
 
 	// Size of the grid;
-	int sizeX = 2*halfGridX + 1;
-	int sizeY = 2*halfGridY + 1;
-	DEBUG_MSG("Size of grid in x = " << sizeX << ", in y = " << sizeY << std::endl);
+	sizeIndexGridX = 2*halfGridX + 1;
+	sizeIndexGridY = 2*halfGridY + 1;
+	DEBUG_MSG("Size of grid in x = " << sizeIndexGridX << ", in y = " << sizeIndexGridY << std::endl);
 	
 	std::pair<int,int> indexGrid;
-	for(int x=0; x<sizeX; x++){
-	  for(int y=0; y<sizeY; y++){
+	for(int x=0; x<sizeIndexGridX; x++){
+	  for(int y=0; y<sizeIndexGridY; y++){
 	    indexGrid.first  = x;
 	    indexGrid.second = y;
 	    grid[indexGrid] = 0;

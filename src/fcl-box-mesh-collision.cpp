@@ -64,18 +64,21 @@ namespace dynamicgraph
 	: Entity(name)
 	,distTolerance(0.002)
 	,num_max_contacts(std::numeric_limits<int>::max())
+	,CONSTRUCT_SIGNAL_IN(transfBoxIN, ml::Matrix)
 	,CONSTRUCT_SIGNAL_OUT(minDistance, double, sotNOSIGNAL)
 	,CONSTRUCT_SIGNAL_OUT(transfBox, ml::Matrix, sotNOSIGNAL)
 	,CONSTRUCT_SIGNAL_OUT(transfMesh, ml::Matrix, sotNOSIGNAL)	  
-	,CONSTRUCT_SIGNAL_OUT(contactPoints, ml::Matrix, sotNOSIGNAL)
+	,CONSTRUCT_SIGNAL_OUT(contactPoints, ml::Matrix, 
+			      transfBoxINSIN )
 	,CONSTRUCT_SIGNAL_OUT(maxNumContacts, int, sotNOSIGNAL)
       {
 	signalRegistration(minDistanceSOUT << transfBoxSOUT << transfMeshSOUT
-			   << contactPointsSOUT << maxNumContactsSOUT );
+			   << contactPointsSOUT << maxNumContactsSOUT
+			   << transfBoxINSIN);
 	minDistanceSOUT.setNeedUpdateFromAllChildren( true );
 	transfBoxSOUT.setNeedUpdateFromAllChildren( true );
 	transfMeshSOUT.setNeedUpdateFromAllChildren( true );
-	contactPointsSOUT.setNeedUpdateFromAllChildren( true );
+	//contactPointsSOUT.setNeedUpdateFromAllChildren( true );
 	maxNumContactsSOUT.setNeedUpdateFromAllChildren( true );
 	initCommands();
       }
@@ -265,6 +268,14 @@ namespace dynamicgraph
 	fcl::CollisionResult  result;
 	result.clear();
 	cgalPoints.clear();
+
+	/* Get the transformation for the box from the signal */
+	const ml::Matrix & M = transfBoxINSIN(t);
+      	fcl::Matrix3f R(M(0,0), M(0,1), M(0,2),
+      			M(1,0), M(1,1), M(1,2),
+      			M(2,0), M(2,1), M(2,2) );
+      	fcl::Vec3f T(M(0,3), M(1,3), M(2,3));
+      	transformBox.setTransform(R, T);
 
 	/* Detect the collision with fcl and get the information */
 	collide(&box, transformBox, &mesh, transformMesh, request, result);

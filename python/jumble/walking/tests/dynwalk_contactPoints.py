@@ -406,8 +406,8 @@ robot.viewer.updateElementConfig('boxLF', wMcoml_XYZ_RPY)      # View the right 
 
 #from contact_handler import ContactSelectPassingPoint
 
-#from contact_handler_new import ContactSelectPassingPointMotionReduced
-from contact_handler_2013 import ContactSelectPassingPointMotionReduced
+from contact_handler_new import ContactSelectPassingPointMotionReduced
+#from contact_handler_2013 import ContactSelectPassingPointMotionReduced
 contactSelect = ContactSelectPassingPointMotionReduced(sot, dyn)
 contactSelect.setContactTasks(contactRF, contactLF)
 contactSelect.setFreeSpaceTasks(taskPPrf, taskPPlf)
