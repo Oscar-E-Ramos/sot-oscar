@@ -1450,7 +1450,7 @@ namespace dynamicgraph
 	try{
 	  os <<"solution = "<< solutionSOUT.accessCopy() <<std::endl << std::endl;
 	}  catch (dynamicgraph::ExceptionSignal e) {}
-	//stack_t::display(os);
+	stack_t::display(os);
 	dispContacts(os);
       }
 

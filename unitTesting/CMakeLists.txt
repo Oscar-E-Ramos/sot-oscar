@@ -18,10 +18,12 @@
 SET(tests
   testCollisionBoxMesh
   testCGALConvexHull
+  testCollisionBoxMeshDebug
   #testCollisionBoxMeshConvexHull
   )
 
 SET(testCollisionBoxMesh_plugins_dependencies fcl)
+SET(testCollisionBoxMeshDebug_plugins_dependencies fcl)
 SET(testCGALConvexHull_plugins_dependencies ${CGAL_LIBRARIES})
 # SET(testCollisionBoxMeshConvexHull_plugins_dependencies 
 #   fcl

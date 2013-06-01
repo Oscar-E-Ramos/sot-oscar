@@ -5,17 +5,19 @@ def computeZmp(sot,dyn):
     p=zeros((4,0))
     f=zeros((0,1))
     if '_RF_p' in [s.name for s in sot.signals()]:
-        Mr=matrix(dyn.rf.value)
-        fr=matrix(sot._RF_fn.value).transpose()
-        pr=matrix(sot._RF_p.value+((1,1,1,1),))
-        p=hstack((p,Mr*pr))
-        f=vstack((f,fr))
+        if len(sot._RF_fn.value)>0:
+            Mr=matrix(dyn.rf.value)
+            fr=matrix(sot._RF_fn.value).transpose()
+            pr=matrix(sot._RF_p.value+(tuple([1 for x in range(len(sot._RF_p.value[0]))]),) )
+            p=hstack((p,Mr*pr))
+            f=vstack((f,fr))
     if '_LF_p' in [s.name for s in sot.signals()]:
-        Ml=matrix(dyn.lf.value)
-        fl=matrix(sot._LF_fn.value).transpose()
-        pl=matrix(sot._LF_p.value+((1,1,1,1),))
-        p=hstack((p,Ml*pl))
-        f=vstack((f,fl))
+        if len(sot._LF_fn.value)>0:
+            Ml=matrix(dyn.lf.value)
+            fl=matrix(sot._LF_fn.value).transpose()
+            pl=matrix(sot._LF_p.value+(tuple([1 for x in range(len(sot._LF_p.value[0]))]),) )
+            p=hstack((p,Ml*pl))
+            f=vstack((f,fl))
     zmp=p*f/sum(f)
     return zmp
 def zmpup(zmp):
@@ -39,12 +41,12 @@ ZmpEstimator.declare = zmpDeclare
 def leftSupport(sot,dyn):
     if '_LF_p' in [s.name for s in sot.signals()]:
         Ml=matrix(dyn.lf.value)
-        pl=matrix(sot._LF_p.value+((1,1,1,1),))
+        pl=matrix(sot._LF_p.value+(tuple([1 for x in range(len(sot._LF_p.value[0]))]),) )
         return  (Ml*pl)[0:3,:]
 def rightSupport(sot,dyn):
     if '_RF_p' in [s.name for s in sot.signals()]:
         Mr=matrix(dyn.rf.value)
-        pr=matrix(sot._RF_p.value+((1,1,1,1),))
+        pr=matrix(sot._RF_p.value+(tuple([1 for x in range(len(sot._RF_p.value[0]))]),) )
         return (Mr*pr)[0:3,:]
 
 ZmpEstimator.rightSupport = lambda x: rightSupport(x.sot,x.dyn)
