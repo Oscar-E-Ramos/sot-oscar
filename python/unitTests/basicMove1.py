@@ -17,7 +17,7 @@ from dynamic_graph.sot.core.utils.attime import attime
 
 from dynamic_graph.sot.dyninv.robot_specific import pkgDataRootDir, modelName, robotDimension, initialConfig, gearRatio, inertiaRotor
 from dynamic_graph.sot.dyninv.meta_task_dyn_6d import MetaTaskDyn6d
-from dynamic_graph.sot.dyninv.meta_tasks_dyn import MetaTaskDynCom, MetaTaskDynPosture, AddContactHelper, gotoNd
+from dynamic_graph.sot.dyninv.meta_tasks_dyn import MetaTaskDynCom, MetaTaskDynPosture, MetaTaskDynLimits, AddContactHelper, gotoNd
 
 from numpy import *
 
@@ -122,20 +122,7 @@ taskCom = MetaTaskDynCom(dyn,dt)
 taskPosture = MetaTaskDynPosture(dyn,dt)
 
 # Angular position and velocity limits
-taskLim = TaskDynLimits('taskLim')
-plug(dyn.position,taskLim.position)
-plug(dyn.velocity,taskLim.velocity)
-taskLim.dt.value = dt
-
-dyn.upperJl.recompute(0)
-dyn.lowerJl.recompute(0)
-taskLim.referencePosInf.value = dyn.lowerJl.value
-taskLim.referencePosSup.value = dyn.upperJl.value
-
-#dqup = (0, 0, 0, 0, 0, 0, 200, 220, 250, 230, 290, 520, 200, 220, 250, 230, 290, 520, 250, 140, 390, 390, 240, 140, 240, 130, 270, 180, 330, 240, 140, 240, 130, 270, 180, 330)
-dqup = (1000,)*robotDim
-taskLim.referenceVelInf.value = tuple([-val*pi/180 for val in dqup])
-taskLim.referenceVelSup.value = tuple([ val*pi/180 for val in dqup])
+taskLim = MetaTaskDynLimits(dyn,dt)
 
 
 #-----------------------------------------------------------------------------
@@ -215,7 +202,7 @@ robot.after.addSignal('dyn.com')
 robot.after.addSignal('sot.forcesNormal')
 robot.after.addSignal('dyn.waist')
 
-robot.after.addSignal('taskLim.normalizedPosition')
+robot.after.addSignal(taskLim.task.name+'.normalizedPosition')
 
 
 #-----------------------------------------------------------------------------
@@ -230,7 +217,7 @@ if (cmp(sot.className,'SolverMotionReduced')==0):
     sot._RF_ddx3.value = ((0.,0.,0.,),)
     sot._LF_ddx3.value = ((0.,0.,0.,),)
 
-sot.push(taskLim.name)
+sot.push(taskLim.task.name)
 plug(robot.state,sot.position)
 
 q0 = robot.state.value
@@ -264,3 +251,4 @@ attime(400 ,
 
 attime(600, stop, "Stopped")
 
+go()
