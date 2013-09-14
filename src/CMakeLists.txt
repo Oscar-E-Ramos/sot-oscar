@@ -74,7 +74,7 @@ ENDFOREACH(lib)
 INSTALL(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/oscar/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/oscar/zmp_estimator.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/oscar/meta_task_passing_point.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/oscar/meta_tasks_tools.py
   # ${CMAKE_CURRENT_BINARY_DIR}/../python/robot_specific.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/oscar
 )
