@@ -54,9 +54,11 @@ ADD_REQUIRED_DEPENDENCY("sot-dyninv >= 1.0.0")
 SET(libs
   
   solver-motion-reduced
-  task-passing-point
   fcl-box-mesh-collision
   foot-collision-grid
+
+  velocity-correction
+  velocity-control
   )
 SET(fcl-box-mesh-collision_plugins_dependencies fcl)
 
@@ -65,10 +67,11 @@ LIST(APPEND LOGGING_WATCHED_TARGETS ${libs})
 SET(headers
 
   solver-motion-reduced.h
-  task-passing-point.h
   fcl-box-mesh-collision.h
   foot-collision-grid.h
 
+  velocity-correction.h
+  velocity-control.h
 )
 
 # list(APPEND task-dyn-limits_plugins_dependencies task-dyn-pd)
